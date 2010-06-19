@@ -30,7 +30,7 @@ end)
 end
 
 local function SpawnTheShityNPC()
-	if game.GetMap == "test_camion" then
+	if game.GetMap() == "test_camion" then
 		local npc = ents.Create( "npcpropshop" )
 		npc:SetPos(Vector(50, -70, -7))
 		npc:SetAngles(Angle(0, -180, 0))
