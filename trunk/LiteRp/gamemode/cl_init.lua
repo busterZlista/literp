@@ -14,3 +14,7 @@ end
 
 end
 hook.Add("OnPLayerChat", "Isaid", Isaid) ]]
+local function SpawnMenu( )
+		return LocalPlayer():IsAdmin()
+end
+hook.Add( "SpawnMenuOpen", "OnlyForAdmin", SpawnMenu)

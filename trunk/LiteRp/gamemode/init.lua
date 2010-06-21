@@ -108,6 +108,12 @@ function meta:GetRpMoney()
 	return money
 end
 
+function meta:GetRpMoneyBank()
+	local SID = self:SteamID()
+	local money = sql.QueryValue("SELECT moneybank FROM LiteRp_Bank WHERE unique_id = '"..SID.."'")
+	return money
+end
+
 function meta:SendDataNJM()
 	self:SetNWString("RpName", self:GetRpName())
 	self:SetNWString("RpJob", self:GetJob())
@@ -135,8 +141,16 @@ function meta:AddMoney( Money )
 	end
 end
 
+function meta:SetMoneyBank( Money )
+	if Money <= 2147483640 and Money >= 0 then -- Max int size, money is a int in the DB
+		local SID = self:SteamID()
+		sql.Query("UPDATE LiteRp_Bank SET moneybank = '"..Money.."' WHERE unique_id = '"..SID.."'")
+		self:ConCommand("refresh")
+	end
+end
+
 function meta:SetMoney( Money )
-	if Money <= "2147483640" and Money >= 0 then -- Max int size, money is a int in the DB
+	if Money <= 2147483640 and Money >= 0 then -- Max int size, money is a int in the DB
 		local SID = self:SteamID()
 		sql.Query("UPDATE LiteRp_DB SET money = '"..Money.."' WHERE unique_id = '"..SID.."'")
 		self:ConCommand("refresh")
@@ -171,7 +185,10 @@ end
 
 function GM:PlayerInitialSpawn( ply )
 	local SID = ply:SteamID()
-	
+	local resultBank = sql.Query("SELECT unique_id, moneybank FROM LiteRp_Bank WHERE unique_id = '"..SID.."'")
+		if (!resultBank) then
+			sql.Query( "INSERT INTO LiteRp_Bank ('unique_id', 'moneybank' )VALUES ('"..SID.."', '0')" )
+		end
 	local resultinv = sql.Query("SELECT slot1, slot2, slot3, slot4, slot5 FROM LiteRp_Inventory WHERE unique_id = '"..SID.."'")
 		if (!resultinv) then
 		local defaultIV = "rien#models/props_combine/combine_bridge_b.mdl" --for now, we can't see the model if its this spawnicon
@@ -195,32 +212,32 @@ function GM:PlayerInitialSpawn( ply )
 end
 
 function GM:PlayerLoadout( ply )
-	if ply:Team() == 1 then 
-		ply:Give( "weapon_physcannon" )
-		ply:Give( "weapon_physgun" )
+	if ply:IsAdmin() then
 		ply:Give( "gmod_tool" )
-		ply:Give( "Key" )
-		ply:Give( "Mennottes" )
-	elseif ply:Team() == 2 then
+	end
+	ply:Give( "weapon_physcannon" )
+	ply:Give( "weapon_physgun" )
+	ply:Give( "Key" )
+	if ply:Team() == 2 then
 		ply:SetArmor(100)
-		ply:Give( "weapon_physcannon" )
-		ply:Give( "weapon_physgun" )
-		ply:Give( "gmod_tool" )
 		ply:Give( "weapon_crowbar" )
-		ply:Give( "Key" )
 		ply:Give( "Mennottes" )
 	end
 end
 
 local function CreateTables()
 
-	if (!sql.TableExists("LiteRp_DB")) then
-		sql.Query("CREATE TABLE LiteRp_DB (unique_id varchar(255), money int UNSIGNED, name varchar(255), job varchar(255), skin varchar(255), timewasted int)")
+	if (!sql.TableExists("LiteRp_Bank")) then
+		sql.Query("CREATE TABLE LiteRp_Bank (unique_id varchar(255), moneybank int UNSIGNED)")
 	end
 	
 	if (!sql.TableExists("LiteRp_Inventory")) then
 		sql.Query("CREATE TABLE LiteRp_Inventory (unique_id varchar(255), slot1 varchar(255), slot2 varchar(255), slot3 varchar(255), slot4 varchar(255), slot5 varchar(255))")
 	end	
+	
+	if (!sql.TableExists("LiteRp_DB")) then
+		sql.Query("CREATE TABLE LiteRp_DB (unique_id varchar(255), money int UNSIGNED, name varchar(255), job varchar(255), skin varchar(255), timewasted int)")
+	end
 end
 hook.Add( "Initialize", "Initialize", CreateTables )
 
@@ -266,8 +283,6 @@ function meta:SetFirstRpModel( RPModel )
 	}
 	for k, v in ipairs(ModelType) do
 		local Sep = string.Explode("#", v)
-		--print(Sep[1])
-		--print(Sep[2])
 		if RPModel == Sep[2] then
 			local Type = Sep[1]
 			print(Type)
@@ -465,5 +480,8 @@ hook.Add("GravGunPunt", "DontPunt", function(Pl, Ent)
 	DropEntityIfHeld(Ent)
 	return false
 end)
-concommand.Add("rope", function(ply)
-end)
+
+function BlockProps(ply)
+	return ply:IsAdmin()
+end
+hook.Add( "PlayerSpawnProp", "BlockProps", BlockProps )

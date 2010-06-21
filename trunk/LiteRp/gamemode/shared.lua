@@ -9,5 +9,3 @@ team.SetUp( 1, "Guest", Color( 255, 0, 0, 150 ) )
 team.SetUp( 2, "Flic", Color( 0, 0, 255, 150 ) )
 team.SetUp( 3, "FlicChief", Color( 125, 125, 125, 255 ) )
 team.SetUp( 3, "GunDealer", Color( 125, 125, 125, 255 ) )
-
-
