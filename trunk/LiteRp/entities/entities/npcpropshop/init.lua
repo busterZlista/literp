@@ -30,15 +30,13 @@ end)
 end
 
 local function SpawnTheShityNPC()
-	if game.GetMap() == "test_camion" then
 		local npc = ents.Create( "npcpropshop" )
 		npc:SetPos(Vector(50, -70, -7))
 		npc:SetAngles(Angle(0, -180, 0))
 		npc:Spawn()
-	end
 end
 
-hook.Add("InitPostEntity", "SpawnTheShityNPC", SpawnTheShityNPC)
+hook.Add("InitPostEntity", "SpawnTheShityikeavendor", SpawnTheShityNPC)
 
 local meta = FindMetaTable("Player")
 

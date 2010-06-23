@@ -24,10 +24,10 @@ function ENT:AcceptInput( name, activator, caller, data )
 	end
 end
 
-function SpawnTheShityNPC()
+local function SpawnTheShityNPC()
 	local npc = ents.Create( "NPCPolice" )
 	npc:SetPos(Vector(-15, -1500, -143.9))
 	npc:SetAngles(Angle(0, 0, 0))
  	npc:Spawn() 
 end
-hook.Add("InitPostEntity", "SpawnTheShityNPC", SpawnTheShityNPC)
+hook.Add("InitPostEntity", "SpawnTheShitypoliceman", SpawnTheShityNPC)
