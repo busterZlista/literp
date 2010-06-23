@@ -7,6 +7,7 @@ AddCSLuaFile( "cl_scoreboard.lua" )
 include( 'Inventory.lua' )
 include( 'shared.lua' )
 include( 'ent.lua' )
+include("sh_lang.lua")
 
 local voiceRadius = 500    
 hook.Add( "PlayerCanHearPlayersVoice", "SomeUniqueName", function( Listener, Talker )    
@@ -15,7 +16,17 @@ hook.Add( "PlayerCanHearPlayersVoice", "SomeUniqueName", function( Listener, Tal
     end    
 end ) 
 
+
 local meta = FindMetaTable("Player")
+-- from darkrp
+function meta:Notify(msgtype, len, msg)
+	if not ValidEntity(self) then return end
+	umsg.Start("_Notify", self)
+		umsg.String(msg)
+		umsg.Short(msgtype)
+		umsg.Long(len)
+	umsg.End()
+end
 
 function meta:LiteRp_Spawn_Free(model)
 	local ModelAllowed = 
@@ -34,6 +45,8 @@ function meta:LiteRp_Spawn_Free(model)
 			ent:SetPos(self:GetPos() + self:GetAngles():Forward() * 64 + Vector( 0, 0, 16 ))
 			ent:SetAngles(Angle(0, 0, 0))
 			ent:Spawn()
+		else 
+			self:Notify(1, 4, LANGUAGE.not_allowed_model .. " : " .. model )
 		end
 	end
 end
@@ -56,6 +69,8 @@ function meta:LiteRp_Spawn_Cost(model)
 			ent:SetAngles(Angle(0, 0, 0))
 			ent:Spawn()
 			self:AddMoney(- 10)
+		else 
+			self:Notify(1, 4, LANGUAGE.not_allowed_model .. " : " .. model )
 		end
 	end
 end
@@ -138,6 +153,8 @@ function meta:AddMoney( Money )
 		umsg.End()
 		self:ConCommand("refresh") 
 		end)
+	else
+		self:Notify(1, 4, LANGUAGE.too_much_money )
 	end
 end
 
@@ -146,6 +163,8 @@ function meta:SetMoneyBank( Money )
 		local SID = self:SteamID()
 		sql.Query("UPDATE LiteRp_Bank SET moneybank = '"..Money.."' WHERE unique_id = '"..SID.."'")
 		self:ConCommand("refresh")
+	else
+		self:Notify(1, 4, LANGUAGE.too_much_money )
 	end
 end
 
@@ -154,6 +173,8 @@ function meta:SetMoney( Money )
 		local SID = self:SteamID()
 		sql.Query("UPDATE LiteRp_DB SET money = '"..Money.."' WHERE unique_id = '"..SID.."'")
 		self:ConCommand("refresh")
+	else
+		self:Notify(1, 4, LANGUAGE.too_much_money )
 	end
 end
 
@@ -385,6 +406,9 @@ function meta:DropMoney( Anmount )
 		if NewMoney >= 0 then
 			self:AddMoney( - Anmount )
 			SpawnMoney(self:GetPos() + self:GetAngles():Forward() * 64 + Vector( 0, 0, 16 ), Anmount)
+			self:Notify(1, 4, LANGUAGE.drop_money .. " " .. Anmount .. " $")
+		else
+		self:Notify(1, 4, LANGUAGE.plz_valid_anmount )
 		end
 	end
 end
