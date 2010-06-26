@@ -24,6 +24,13 @@ function ENT:AcceptInput( name, activator, caller, data )
 	end
 end
 
+concommand.Add("BecomeACop", function(ply)
+	if ply:GetTimeWasted() >= "60" then
+		ply:SetTeam(2)
+		ply:SetJob("Policier")
+	end
+end)
+
 local function SpawnTheShityNPC()
 	local npc = ents.Create( "NPCPolice" )
 	npc:SetPos(Vector(-15, -1500, -143.9))

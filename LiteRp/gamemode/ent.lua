@@ -27,14 +27,14 @@ function meta:OwnDoor(ply)
 		if self:GetDoorOwner() != nil then
 		return
 	end
-		self.DoorData.Owner = ply
+	self.DoorData.Owner = ply
 end
 
 function meta:UnownDoor(ply)
 if not self.Entity:IsDoor() then return end
 	self.DoorData = self.DoorData or {}
-		if self:GetDoorOwner() == ply then
-		self.DoorData.Owner = nil
-		end
+	if self:GetDoorOwner() == ply then
+	self.DoorData.Owner = nil
+	end
 end
 

@@ -4,21 +4,24 @@ AddCSLuaFile( "cl_Hud.lua" )
 AddCSLuaFile( "cl_StaringDerma.lua" )
 AddCSLuaFile( "cl_Inventory.lua" )
 AddCSLuaFile( "cl_scoreboard.lua" )
-include( 'Inventory.lua' )
-include( 'shared.lua' )
-include( 'ent.lua' )
+
+include( "Inventory.lua" )
+include( "shared.lua" )
+include( "ent.lua" )
 include("sh_lang.lua")
 
-local voiceRadius = 500    
+-- Voice Chat Range *CVAR* *rp_voiceradius* *default 500*
+CreateConVar( "rp_voiceradius", "500", { FCVAR_REPLICATED, FCVAR_ARCHIVE } )
 hook.Add( "PlayerCanHearPlayersVoice", "SomeUniqueName", function( Listener, Talker )    
-     if Listener:GetPos():Distance( Talker:GetPos() ) > voiceRadius then    
+     if Listener:GetPos():Distance( Talker:GetPos() ) > GetConVarNumber("rp_voiceradius") then    
         return false    
     end    
 end ) 
 
-
 local meta = FindMetaTable("Player")
+
 -- from darkrp
+-- Notify msg *function* Example:ply:Notify(1, 4, "mytext" )
 function meta:Notify(msgtype, len, msg)
 	if not ValidEntity(self) then return end
 	umsg.Start("_Notify", self)
@@ -27,9 +30,9 @@ function meta:Notify(msgtype, len, msg)
 		umsg.Long(len)
 	umsg.End()
 end
+-- List of models allowed to spawn by the player
 
-function meta:LiteRp_Spawn_Free(model)
-	local ModelAllowed = 
+ModelAllowed = 
 		{
 		"models/props_borealis/bluebarrel001.mdl",
 		"models/props_building_details/Storefront_Template001a_Bars.mdl",
@@ -38,59 +41,54 @@ function meta:LiteRp_Spawn_Free(model)
 		"models/props_c17/FurnitureCouch001a.mdl",
 		"models/props_c17/FurnitureShelf001a.mdl"
 		}
-	for k, v in ipairs(ModelAllowed) do
-		if model == v then
-			local ent = ents.Create("prop_physics")
-			ent:SetModel(model)
-			ent:SetPos(self:GetPos() + self:GetAngles():Forward() * 64 + Vector( 0, 0, 16 ))
-			ent:SetAngles(Angle(0, 0, 0))
-			ent:Spawn()
-		else 
-			self:Notify(1, 4, LANGUAGE.not_allowed_model .. " : " .. model )
+		
+-- Spawn props *function* Example:ply:LiteRp_Spawn("models/props_c17/FurnitureShelf001a.mdl", 0)
+
+function meta:LiteRp_Spawn(model, price)
+	if self:GetRpMoney() >= price then
+		for k, v in ipairs(ModelAllowed) do
+			if model == v then
+				local ent = ents.Create("prop_physics")
+				ent:SetModel(model)
+				ent:SetPos(self:GetPos() + self:GetAngles():Forward() * 64 + Vector( 0, 0, 16 ))
+				ent:SetAngles(Angle(0, 0, 0))
+				ent:Spawn()
+				self:AddMoney(- price)
+			else 
+				self:Notify(1, 4, LANGUAGE.not_allowed_model .. " : " .. model )
+			end
 		end
+	else
+		self:Notify(1, 4, LANGUAGE.nomoney )
 	end
 end
 
-function meta:LiteRp_Spawn_Cost(model)
-	local ModelAllowed = 
-		{
-		"models/props_borealis/bluebarrel001.mdl",
-		"models/props_building_details/Storefront_Template001a_Bars.mdl",
-		"models/props_c17/canister_propane01a.mdl",
-		"models/props_c17/FurnitureChair001a.mdl",
-		"models/props_c17/FurnitureCouch001a.mdl",
-		"models/props_c17/FurnitureShelf001a.mdl"
-		}
-	for k, v in ipairs(ModelAllowed) do
-		if model == v then
-			local ent = ents.Create("prop_physics")
-			ent:SetModel(model)
-			ent:SetPos(self:GetPos() + self:GetAngles():Forward() * 64 + Vector( 0, 0, 16 ))
-			ent:SetAngles(Angle(0, 0, 0))
-			ent:Spawn()
-			self:AddMoney(- 10)
-		else 
-			self:Notify(1, 4, LANGUAGE.not_allowed_model .. " : " .. model )
-		end
-	end
-end
+-- Get the time wasted on the server (in minutes) *function* Example: if ply:GetTimeWasted() <= 60 then return end
 
 function meta:GetTimeWasted()
 	local SID = self:SteamID()
 	local time = sql.QueryValue("SELECT timewasted FROM LiteRp_DB WHERE unique_id = '"..SID.."'")
 	return time 
 end
+
+-- Set the time wasted on the server (in minutes) *function* will be probably removed later, just used for test purposes
+
 function meta:SetTimeWasted(Time)
 	local SID = self:SteamID()
 	sql.Query("UPDATE LiteRp_DB SET timewasted = '"..Time.."' WHERE unique_id = '"..SID.."'")
 	self:ConCommand("refresh")
 end
+
+-- Add time wasted on the server (in minutes) *function* will be probably removed later, just used for test purposes
+
 function AddTimeWasted(ply)
 	local SID = ply:SteamID()
 	local NewTime = ply:GetTimeWasted() + 10
 	sql.Query("UPDATE LiteRp_DB SET timewasted = '"..NewTime.."' WHERE unique_id = '"..SID.."'")
 	ply:ConCommand("refresh")
 end
+
+-- Send the time wasted to the client
 
 function meta:SendTimeWasted()
 	umsg.Start("TimeWasted", self)
@@ -111,12 +109,15 @@ function meta:GetRpModel()
 	return Sep[2]
 end
 
+-- Get the type of the player values returned :(C, B, FC, FB)(Caucasian, Black, FemmaleCaucasian, FemmaleBlack) 
+
 function meta:GetRpType()
 	local SID = self:SteamID()
 	local skin = sql.QueryValue("SELECT skin FROM LiteRp_DB WHERE unique_id = '"..SID.."'")
 	local Sep = string.Explode("#", skin)
 	return Sep[1]
 end
+
 function meta:GetRpMoney()
 	local SID = self:SteamID()
 	local money = sql.QueryValue("SELECT money FROM LiteRp_DB WHERE unique_id = '"..SID.."'")
@@ -128,6 +129,8 @@ function meta:GetRpMoneyBank()
 	local money = sql.QueryValue("SELECT moneybank FROM LiteRp_Bank WHERE unique_id = '"..SID.."'")
 	return money
 end
+
+-- Send the Name, the Job, and the Money of the player to the player(client)
 
 function meta:SendDataNJM()
 	self:SetNWString("RpName", self:GetRpName())
@@ -197,7 +200,7 @@ end
 
 function GM:PlayerSpawn( ply )
     self.BaseClass:PlayerSpawn( ply ) 
-    ply:SetGravity( 1 )  --0.75
+    ply:SetGravity( 1 )  --0.75 (sandbox default)
     ply:SetMaxHealth( 100, true )  
     ply:SetWalkSpeed( 155)  
 	ply:SetRunSpeed( 230 )
@@ -205,6 +208,7 @@ function GM:PlayerSpawn( ply )
 end
 
 function GM:PlayerInitialSpawn( ply )
+-- Check if the DB exist
 	local SID = ply:SteamID()
 	local resultBank = sql.Query("SELECT unique_id, moneybank FROM LiteRp_Bank WHERE unique_id = '"..SID.."'")
 		if (!resultBank) then
@@ -224,6 +228,9 @@ function GM:PlayerInitialSpawn( ply )
 		end
 			ply:ConCommand("refresh")
 			ply:SendDataNJM()
+			
+-- Set the team by the job info
+
 	if ply:GetJob() == "Policier" then
 		ply:SetTeam( 2 )
 	else
@@ -234,7 +241,7 @@ end
 
 function GM:PlayerLoadout( ply )
 	if ply:IsAdmin() then
-		ply:Give( "gmod_tool" )
+		ply:Give( "gmod_tool" )-- may be changed later
 	end
 	ply:Give( "weapon_physcannon" )
 	ply:Give( "weapon_physgun" )
@@ -246,7 +253,7 @@ function GM:PlayerLoadout( ply )
 	end
 end
 
-local function CreateTables()
+local function CreateTables()-- Create the table if they don't exist
 
 	if (!sql.TableExists("LiteRp_Bank")) then
 		sql.Query("CREATE TABLE LiteRp_Bank (unique_id varchar(255), moneybank int UNSIGNED)")
@@ -267,9 +274,8 @@ function meta:SetRpName( RPName )
 	sql.Query("UPDATE LiteRp_DB SET name = '"..RPName.."' WHERE unique_id = '"..SID.."'")
 	self:ConCommand("refresh")
 end
-
-function meta:SetFirstRpModel( RPModel )
-	local ModelType = 
+-- Model allowed + type Usage: "<type>#<model>"
+ModelType = 
 	{
 	"F#models/player/Group01/Female_01.mdl",
 	"F#models/player/Group01/Female_02.mdl",
@@ -302,13 +308,15 @@ function meta:SetFirstRpModel( RPModel )
 	"C#models/player/Group03/Male_08.mdl",
 	"C#models/player/Group03/Male_09.mdl"
 	}
+	
+-- the first time the player choose a model(he can choose his type)
+
+function meta:SetFirstRpModel( RPModel )
 	for k, v in ipairs(ModelType) do
 		local Sep = string.Explode("#", v)
 		if RPModel == Sep[2] then
 			local Type = Sep[1]
-			print(Type)
 			local model = Sep[2]
-			print(model)
 			local SID = self:SteamID()
 			sql.Query("UPDATE LiteRp_DB SET skin = '"..Type.."#".. model .."' WHERE unique_id = '"..SID.."'")
 			self:SetModel(RPModel)
@@ -318,46 +326,10 @@ function meta:SetFirstRpModel( RPModel )
 end
 
 function meta:SetRpModel( RPModel )
-	local ModelType = 
-	{
-	"F#models/player/Group01/Female_01.mdl",
-	"F#models/player/Group01/Female_02.mdl",
-	"FB#models/player/Group01/Female_03.mdl",
-	"F#models/player/Group01/Female_04.mdl",
-	"F#models/player/Group01/Female_06.mdl",
-	"FB#models/player/Group01/Female_07.mdl",
-	"B#models/player/group01/male_01.mdl",
-	"models/player/Group01/Male_02.mdl",
-	"B#models/player/Group01/male_03.mdl",
-	"C#models/player/Group01/Male_04.mdl",
-	"C#models/player/Group01/Male_05.mdl",
-	"C#models/player/Group01/Male_06.mdl",
-	"C#models/player/Group01/Male_07.mdl",
-	"C#models/player/Group01/Male_08.mdl",
-	"C#models/player/Group01/Male_09.mdl",
-	"F#models/player/Group03/Female_01.mdl",
-	"F#models/player/Group03/Female_02.mdl",
-	"FB#models/player/Group03/Female_03.mdl",
-	"F#models/player/Group03/Female_04.mdl",
-	"F#models/player/Group03/Female_06.mdl",
-	"FB#models/player/Group03/Female_07.mdl",
-	"B#models/player/group03/male_01.mdl",
-	"C#models/player/Group03/Male_02.mdl",
-	"B#models/player/Group03/male_03.mdl",
-	"C#models/player/Group03/Male_04.mdl",
-	"C#models/player/Group03/Male_05.mdl",
-	"C#models/player/Group03/Male_06.mdl",
-	"C#models/player/Group03/Male_07.mdl",
-	"C#models/player/Group03/Male_08.mdl",
-	"C#models/player/Group03/Male_09.mdl"
-	}
 	for k, v in ipairs(ModelType) do
 		local Sep = string.Explode("#", v)
 		if RPModel == Sep[2] then
-		print("lol")
-		print(Sep[1])
 			if self:GetRpType() == Sep[1] then
-			print("lol2")
 				local SID = self:SteamID()
 				sql.Query("UPDATE LiteRp_DB SET skin = '"..Sep[1].."#"..RPModel.."' WHERE unique_id = '"..SID.."'")
 				self:SetModel(RPModel)
@@ -367,11 +339,14 @@ function meta:SetRpModel( RPModel )
 	end
 end
 
+concommand.Add("refresh", function(ply) ply:SendDataNJM() ply:ConCommand("DrawSpawnicon") ply:GetEntInSlot() ply:SendTimeWasted() end)
+-- usefull command, isn't it ? (i think its ineficient, but so simple :p)
+
+-- #To-Do# this command need to be restricted (the player can't choose a name/wear/job everywhere)
 concommand.Add("SetName", function(ply, cmd, args) ply:SetRpName( args[1] ) end)
 concommand.Add("SetFirstModel", function(ply, cmd, args) ply:SetFirstRpModel( args[1] ) end)
 concommand.Add("SetModel", function(ply, cmd, args) ply:SetRpModel( args[1] ) end)
 concommand.Add("GetModel", function(ply, cmd, args) print(ply:GetRpModel()) end)
-concommand.Add("refresh", function(ply) ply:SendDataNJM() ply:ConCommand("DrawSpawnicon") ply:GetEntInSlot() ply:SendTimeWasted() end)
 concommand.Add("job", function(ply, cmd, args) 
 	if Job == Policier or Job == Gundealer or Job == FlicChief then
 		print("NoValid")
@@ -379,14 +354,14 @@ concommand.Add("job", function(ply, cmd, args)
 	end
 	ply:SetJob( args[1] ) 
 end)
+-- Should be removed, used for testing purposes
 concommand.Add("GetDoorOwner", function(ply) tr = ply:GetEyeTrace() tr.Entity:GetDoorOwner() end)
+
  -- Thanks to BusyMonkey for the chatcommand script
- 
 local chatcommands = {};
 function AddChatCommand(name, func)
 	chatcommands[name] = func;
 end
-
 hook.Add("PlayerSay", "ChatCommand", function(ply, text)
 	local tab = string.Explode(" ", text);
 	local cmd = table.remove(tab, 1);
@@ -400,6 +375,7 @@ hook.Add("PlayerSay", "ChatCommand", function(ply, text)
 		--return "";
 	end
 end);
+
 function meta:DropMoney( Anmount )
 	if Anmount != nil then
 		local NewMoney = self:GetRpMoney() - Anmount
@@ -414,7 +390,7 @@ function meta:DropMoney( Anmount )
 end
 
 AddChatCommand("dropmoney", function(ply, cmd, args) ply:DropMoney( args[1] ) end)
-
+-- used to put thing in the inventory
 AddChatCommand("take", function(ply)
 	local SID = ply:SteamID()
 	local slot1 = sql.QueryValue("SELECT slot1 FROM LiteRp_Inventory WHERE unique_id = '"..SID.."'")
@@ -437,54 +413,31 @@ AddChatCommand("take", function(ply)
 		theslot = 3
 	elseif ent4 == "rien" then
 		theslot = 4
-		else
+	else
+		self:Notify(1, 4, LANGUAGE.slot_full)
 		return
 	end
 ply:PutThingsInBag( theslot )
 end)
+-- Open the inventory (F4)
 function GM:ShowSpare2( ply )
 	ply:ConCommand("refresh")
 	umsg.Start("InventoryMenu", ply)
 	umsg.End()
-
 end
+-- Spawn a prop, cost:10$
+concommand.Add("LiteRp_Spawn", function(ply, cmd, args) ply:LiteRp_Spawn(args[1], 10) end)
 
-concommand.Add("LiteRp_Spawn", function(ply, cmd, args) ply:LiteRp_Spawn_Cost(args[1]) end)
-
-concommand.Add("BecomeACop", function(ply)
-	if ply:GetTimeWasted() >= "60" then
-		ply:SetTeam(2)
-		ply:SetJob("Policier")
-	end
-end)
-concommand.Add("GetTimeWasted", function(ply) print(ply:GetTimeWasted()) end)
-concommand.Add("SellDoor", function(ply)
-local tr = ply:GetEyeTrace()
-if tr.Entity:IsDoor() then
-tr.Entity:UnownDoor(ply)
-end
-end)
-
-AddChatCommand("ooc", function(ply, cmd, args)local Pos = ply:GetPos()
-	for k, v in ipairs (player.GetAll()) do
-		v:ChatPrint(Color(255,255,255), ply:GetRPName(), Color(255,0,0), ":[ooc]", Color(0,0,255), args[1])
-	end
-end)
-AddChatCommand("", function(ply, cmd, args)local Pos = ply:GetPos()
-	for k, v in ipairs (player.GetAll()) do
-		local recevierpos = v:GetPos()
-		if recevier:Distance(Pos) >= 400 then
-			v:ChatPrint(Color(255,255,255), ply:GetRPName(), Color(255,0,0), ":", Color(0,0,255), args[1])
-		end
-	end
-end)
-
+-- #TO-DO# Fix this (the palyer can see the "//" before an ooc chat
 function GM:PlayerCanSeePlayersChat( strText, bTeamOnly, pListener, pSpeaker )
 if string.Left(strText, 3) == "// " then return true end
 if pListener:GetPos():Distance(pSpeaker:GetPos()) >= 400 then return false end
 	return true
 end
 
+-- Restrict taking object with physgun and define the range
+-- Physgun Range *CVAR* *rp_physrange* *default 100*
+CreateConVar( "rp_physrange", "100", { FCVAR_REPLICATED, FCVAR_ARCHIVE } )
 function physgunPickup( ply, ent )
 	local Restricted = {"money", "npcolice"}
 	for k, v in pairs(Restricted) do
@@ -492,19 +445,21 @@ function physgunPickup( ply, ent )
 			return false 
 		end
 	end
-	if ent:GetPos():Distance(ply:GetPos()) >= 100 then
+	if ent:GetPos():Distance(ply:GetPos()) >= GetConVarNumber("rp_physrange") then
 		return false
 	else
 		return true
 	end
 end
-hook.Add( "PhysgunPickup", "physgunPickup", physgunPickup );
+hook.Add( "PhysgunPickup", "physgunPickup", physgunPickup )
 
+-- disable the "eject-things" with the gravgun
 hook.Add("GravGunPunt", "DontPunt", function(Pl, Ent)
 	DropEntityIfHeld(Ent)
 	return false
 end)
 
+-- block the "gm_spawn" command
 function BlockProps(ply)
 	return ply:IsAdmin()
 end
