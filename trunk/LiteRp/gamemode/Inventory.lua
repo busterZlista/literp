@@ -26,6 +26,7 @@ function meta:PutThingsInBag( Slot )
 		end
 	end
 end
+concommand.Add("PutThingsInBag", function(ply, cmd, args) ply:PutThingsInBag( args[1] ) end)
 
 function meta:SpawnThingsInBag( Slot )
 	local SID = self:SteamID()
@@ -48,11 +49,9 @@ function meta:SpawnThingsInBag( Slot )
 	end
 	sql.Query("UPDATE LiteRp_Inventory SET slot" .. Slot .. " = 'rien#models/props_combine/combine_bridge_b.mdl' WHERE unique_id = '"..SID.."'")
 end
-
-concommand.Add("PutThingsInBag", function(ply, cmd, args) ply:PutThingsInBag( args[1] ) end)
-
 concommand.Add("SpawnThingsInBag", function(ply, cmd, args) ply:SpawnThingsInBag( args[1] ) end)
 
+-- send the slot info to the player(client)
 function meta:GetEntInSlot()
 	local SID = self:SteamID()
 	local slot1 = sql.QueryValue("SELECT slot1 FROM LiteRp_Inventory WHERE unique_id = '"..SID.."'")

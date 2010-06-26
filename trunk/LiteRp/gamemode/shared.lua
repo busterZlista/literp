@@ -1,4 +1,7 @@
- 
+			--[[ ############################
+					LiteRP by Slayer36,
+			thanks to all who have contributed 
+			##################################]]
 GM.Name		= "LiteRp"
 GM.Author	= "Slay3r36"
 GM.Email	= "lag.gmod@gmail.com"

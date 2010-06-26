@@ -5,21 +5,14 @@ include( 'cl_Inventory.lua' )
 include( 'cl_scoreboard.lua')
 include("sh_lang.lua")
 
---[[ function Isaid( player, Text, TeamOnly, PlayerIsDead )
-if string.Left(Text, 3) == "// " then
-player:ConCommand("ooc " .. Text)
-else
-player:ConCommand("chat " .. Text)
-end
---chat.PlaySound()
-
-end
-hook.Add("OnPLayerChat", "Isaid", Isaid) ]]
+-- Disable the spawnmenu for non admin
 local function SpawnMenu( )
 		return LocalPlayer():IsAdmin()
 end
 hook.Add( "SpawnMenuOpen", "OnlyForAdmin", SpawnMenu)
+
 -- From darkrp
+-- used for the Notify function
 local function DisplayNotify(msg)
 	local txt = msg:ReadString()
 	GAMEMODE:AddNotify(txt, msg:ReadShort(), msg:ReadLong())
